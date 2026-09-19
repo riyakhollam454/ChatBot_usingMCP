@@ -1,0 +1,7 @@
+mcp
+google-genai
+pandas
+python-dotenv
+fastapi
+uvicorn
+jinja2
