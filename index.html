@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales AI Assistant</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="background-glow"></div>
+    
+    <div class="chat-container">
+        <!-- Header -->
+        <header class="chat-header">
+            <div class="agent-info">
+                <div class="status-indicator"></div>
+                <h2>Sales MCP Assistant</h2>
+            </div>
+            <span class="badge">Gemini 2.5 Flash</span>
+        </header>
+
+        <!-- Chat Output -->
+        <div class="chat-box" id="chatBox">
+            <div class="message bot-message">
+                <div class="message-content">
+                    Hello! I'm your Sales Assistant. Ask me anything about your sales data, categories, or top products!
+                </div>
+            </div>
+        </div>
+
+        <!-- Typing Indicator -->
+        <div class="typing-indicator" id="typingIndicator">
+            <span></span><span></span><span></span>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-container">
+            <input type="text" id="userInput" placeholder="Ask about sales, products, categories..." autocomplete="off">
+            <button id="sendBtn" onclick="sendMessage()">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const userInput = document.getElementById("userInput");
+        const chatBox = document.getElementById("chatBox");
+        const typingIndicator = document.getElementById("typingIndicator");
+
+        userInput.addEventListener("keypress", function(e) {
+            if (e.key === "Enter") sendMessage();
+        });
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            // Append User Message
+            appendMessage(text, "user-message");
+            userInput.value = "";
+
+            // Show Typing Indicator
+            typingIndicator.style.display = "flex";
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            try {
+                const res = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: text })
+                });
+
+                const data = await res.json();
+                
+                // Hide Typing Indicator
+                typingIndicator.style.display = "none";
+
+                // Append Response
+                if (data.status === "tool_execution") {
+                    appendToolCall(data.tool_name, data.tool_args, data.result);
+                } else {
+                    appendMessage(data.response, "bot-message");
+                }
+            } catch (err) {
+                typingIndicator.style.display = "none";
+                appendMessage("Error communicating with the server.", "bot-message error");
+            }
+        }
+
+        function appendMessage(text, className) {
+            const msgDiv = document.createElement("div");
+            msgDiv.className = `message ${className}`;
+            msgDiv.innerHTML = `<div class="message-content">${text}</div>`;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function appendToolCall(toolName, args, result) {
+            const card = document.createElement("div");
+            card.className = "tool-card";
+            card.innerHTML = `
+                <div class="tool-header"><i class="fa-solid fa-gear fa-spin"></i> Executed MCP Tool: <strong>${toolName}</strong></div>
+                <div class="tool-details">Arguments: ${JSON.stringify(args)}</div>
+                <div class="tool-result">Result: ${result}</div>
+            `;
+            chatBox.appendChild(card);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>
